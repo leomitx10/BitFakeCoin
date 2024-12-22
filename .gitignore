@@ -1,0 +1,93 @@
+# Arquivos de compilação C++
+*.o
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Diretórios de build
+build/
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+
+# Arquivos de IDE e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+
+# Arquivos de dependências
+node_modules/
+vendor/
+lib/
+deps/
+
+# Arquivos de configuração local
+*.env
+config.local.json
+*.local.json
+
+# Arquivos de cache
+.cache/
+.temp/
+tmp/
+
+# Arquivos de log
+*.log
+logs/
+log/
+
+# Arquivos de banco de dados
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Arquivos de certificado e chaves
+*.pem
+*.key
+*.crt
+*.cert
+*.pfx
+
+# Arquivos de backup
+*.bak
+*.backup
+*.old
+
+# Arquivos específicos do projeto
+blockchain.dat
+wallet.dat
+*.wallet
+*.chain
+
+# Arquivos de teste e cobertura
+coverage/
+test-results/
+*.coverage
+*.coveragexml
+
+# Arquivos de documentação gerada
+docs/generated/
+doxygen/
+
+# Outros
+*.zip
+*.tar.gz
+*.rar
+core.*

@@ -42,8 +42,9 @@ async function loadDashboard() {
             return;
         }
 
-        // Mostrar apenas as 5 transações mais recentes
-        const recentTransactions = data.transactions.slice(0, 5);
+        // Inverter a ordem e mostrar apenas as 5 transações mais recentes
+        const sortedTransactions = [...data.transactions].reverse();
+        const recentTransactions = sortedTransactions.slice(0, 5);
         recentTransactions.forEach(transaction => {
             const card = createTransactionCard(transaction);
             transactionList.appendChild(card);

@@ -37,7 +37,9 @@ async function loadTransactions() {
             return;
         }
 
-        data.transactions.forEach(transaction => {
+        // Inverter a ordem para mostrar as mais recentes primeiro
+        const sortedTransactions = [...data.transactions].reverse();
+        sortedTransactions.forEach(transaction => {
             const card = createTransactionCard(transaction);
             transactionList.appendChild(card);
         });
