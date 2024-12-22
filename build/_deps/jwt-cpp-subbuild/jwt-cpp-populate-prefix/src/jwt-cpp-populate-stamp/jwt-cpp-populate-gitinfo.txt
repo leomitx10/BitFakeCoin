@@ -1,3 +1,0 @@
-repository='https://github.com/Thalhammer/jwt-cpp.git'
-module=''
-tag='origin'
