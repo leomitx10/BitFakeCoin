@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoProject - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">CryptoProject</div>
+        <div class="nav-menu">
+            <a href="dashboard.html" class="active">Dashboard</a>
+            <a href="mining.html">Mineração</a>
+            <a href="transactions.html">Transações</a>
+            <a href="#" id="logoutBtn">Sair</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard">
+            <div class="wallet-info">
+                <h2>Sua Carteira</h2>
+                <div class="balance-box">
+                    <h3>Saldo</h3>
+                    <p class="balance" id="balance">Carregando...</p>
+                </div>
+                <div class="address-box">
+                    <h3>Endereço da Carteira</h3>
+                    <p class="address" id="walletAddress">Carregando...</p>
+                    <button onclick="copyAddress()" class="copy-btn">Copiar</button>
+                </div>
+            </div>
+
+            <div class="transaction-history">
+                <h2>Histórico de Transações</h2>
+                <div id="transactionList" class="transaction-list">
+                    <p>Carregando transações...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

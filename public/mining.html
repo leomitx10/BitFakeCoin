@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoProject - Mineração</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">CryptoProject</div>
+        <div class="nav-menu">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="mining.html" class="active">Mineração</a>
+            <a href="transactions.html">Transações</a>
+            <a href="#" id="logoutBtn">Sair</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="mining-panel">
+            <h2>Painel de Mineração</h2>
+            <div class="mining-stats">
+                <div class="stat-box">
+                    <h3>Status</h3>
+                    <p id="miningStatus">Parado</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Blocos Minerados</h3>
+                    <p id="blocksMined">0</p>
+                </div>
+                <div class="stat-box">
+                    <h3>Recompensas Totais</h3>
+                    <p id="totalRewards">0.00</p>
+                </div>
+            </div>
+            <div class="mining-controls">
+                <button id="startMining" class="primary-btn">Iniciar Mineração</button>
+                <button id="stopMining" class="secondary-btn" disabled>Parar Mineração</button>
+            </div>
+            <div class="mining-log">
+                <h3>Log de Mineração</h3>
+                <div id="miningLog" class="log-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/mining.js"></script>
+</body>
+</html>
