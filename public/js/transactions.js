@@ -1,21 +1,63 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
-        window.location.href = '/index.html';
+        window.location.href = 'login.html';
         return;
     }
 
-    const transactionForm = document.getElementById('transactionForm');
-    const transactionList = document.getElementById('transactionList');
-    let currentFilter = 'all';
+    loadTransactions();
+    setupTransactionForm();
+    setupFilterButtons();
+});
 
-    transactionForm.addEventListener('submit', async (e) => {
+async function loadTransactions() {
+    try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const response = await fetch('/api/transactions/history', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Falha ao carregar transações');
+        }
+
+        const data = await response.json();
+        const transactionList = document.getElementById('transactionList');
+        transactionList.innerHTML = '';
+
+        if (data.transactions.length === 0) {
+            transactionList.innerHTML = '<p>Nenhuma transação encontrada.</p>';
+            return;
+        }
+
+        data.transactions.forEach(transaction => {
+            const card = createTransactionCard(transaction);
+            transactionList.appendChild(card);
+        });
+    } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('transactionList').innerHTML = 
+            '<p>Erro ao carregar transações. Tente novamente mais tarde.</p>';
+    }
+}
+
+function setupTransactionForm() {
+    const form = document.getElementById('transactionForm');
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const recipientAddress = document.getElementById('recipientAddress').value;
         const amount = parseFloat(document.getElementById('amount').value);
-
+        
         try {
+            const token = sessionStorage.getItem('token');
             const response = await fetch('/api/transactions/send', {
                 method: 'POST',
                 headers: {
@@ -28,80 +70,93 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            if (response.ok) {
-                alert('Transação enviada com sucesso!');
-                transactionForm.reset();
-                loadTransactions();
-            } else {
+            if (!response.ok) {
                 const error = await response.json();
-                alert(error.message || 'Erro ao enviar transação');
+                throw new Error(error.message || 'Falha ao enviar transação');
             }
+
+            alert('Transação enviada com sucesso!');
+            form.reset();
+            loadTransactions();
         } catch (error) {
-            console.error('Erro:', error);
-            alert('Erro ao enviar transação');
+            alert(error.message);
         }
     });
+}
 
-    // Filtros de transação
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            loadTransactions();
-        });
+function createTransactionCard(transaction) {
+    const card = document.createElement('div');
+    let iconClass, cardClass, title, info;
+    
+    // Determinar o tipo de card baseado no tipo de transação
+    if (transaction.type === 'mining_reward') {
+        iconClass = 'fa-coins';
+        cardClass = 'mining-reward';
+        title = 'Recompensa de Mineração';
+        info = `Bloco #${transaction.blockNumber}`;
+    } else if (transaction.direction === 'sent') {
+        iconClass = 'fa-arrow-up';
+        cardClass = 'sent-transaction';
+        title = 'Enviado';
+        info = `Para: ${transaction.to}`;
+    } else {
+        iconClass = 'fa-arrow-down';
+        cardClass = 'received-transaction';
+        title = 'Recebido';
+        info = `De: ${transaction.from}`;
+    }
+
+    // Formatar data e hora
+    const date = new Date(transaction.timestamp);
+    const formattedDate = date.toLocaleDateString('pt-BR');
+    const formattedTime = date.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
     });
 
-    async function loadTransactions() {
-        try {
-            const response = await fetch(`/api/transactions/history?filter=${currentFilter}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+    // Formatar valor com sinal
+    const sign = transaction.impact >= 0 ? '+' : '';
+    const amount = `${sign}${transaction.impact.toFixed(2)} BFC`;
+
+    // Criar HTML do card
+    card.className = `transaction-card ${cardClass}`;
+    card.innerHTML = `
+        <div class="transaction-icon">
+            <i class="fas ${iconClass}"></i>
+        </div>
+        <div class="transaction-content">
+            <div class="transaction-title">${title}</div>
+            <div class="transaction-info">${info}</div>
+        </div>
+        <div class="transaction-timestamp">${formattedDate} ${formattedTime}</div>
+        <div class="transaction-amount">${amount}</div>
+    `;
+
+    return card;
+}
+
+function setupFilterButtons() {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remover classe active de todos os botões
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            const filter = button.dataset.filter;
+            const cards = document.querySelectorAll('.transaction-card');
+
+            cards.forEach(card => {
+                if (filter === 'all') {
+                    card.style.display = 'flex';
+                } else if (filter === 'sent') {
+                    card.style.display = card.classList.contains('sent-transaction') ? 'flex' : 'none';
+                } else if (filter === 'received') {
+                    card.style.display = 
+                        (card.classList.contains('received-transaction') || 
+                         card.classList.contains('mining-reward')) ? 'flex' : 'none';
                 }
             });
-
-            if (response.ok) {
-                const transactions = await response.json();
-                displayTransactions(transactions);
-            } else {
-                alert('Erro ao carregar transações');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-        }
-    }
-
-    function displayTransactions(transactions) {
-        transactionList.innerHTML = '';
-
-        if (transactions.length === 0) {
-            transactionList.innerHTML = '<p>Nenhuma transação encontrada.</p>';
-            return;
-        }
-
-        transactions.forEach(tx => {
-            const txElement = document.createElement('div');
-            txElement.className = `transaction-item ${tx.type}`;
-            
-            const amount = tx.type === 'sent' ? `-${tx.amount}` : `+${tx.amount}`;
-            const amountClass = tx.type === 'sent' ? 'text-danger' : 'text-success';
-
-            txElement.innerHTML = `
-                <div class="transaction-header">
-                    <span class="transaction-type">${tx.type === 'sent' ? 'Enviado' : 'Recebido'}</span>
-                    <span class="transaction-amount ${amountClass}">${amount} coins</span>
-                </div>
-                <div class="transaction-details">
-                    <p><strong>${tx.type === 'sent' ? 'Para' : 'De'}:</strong> ${tx.type === 'sent' ? tx.to : tx.from}</p>
-                    <p><strong>Data:</strong> ${new Date(tx.timestamp).toLocaleString()}</p>
-                    <p><strong>Status:</strong> ${tx.status}</p>
-                </div>
-            `;
-
-            transactionList.appendChild(txElement);
         });
-    }
-
-    // Carregar transações iniciais
-    loadTransactions();
-});
+    });
+}

@@ -5,17 +5,17 @@
 #include <random>
 #include <nlohmann/json.hpp>
 #include "../blockchain/Transaction.h"
+#include "../blockchain/Blockchain.h"
 #include <openssl/evp.h>
 #include <openssl/pem.h>
-
-class Transaction;
 
 class Wallet {
 private:
     std::string address;
-    double balance;
+    std::string ownerUsername;  // Nome do usuário dono da carteira
     EVP_PKEY* keypair;
-    std::vector<std::shared_ptr<Transaction>> transactions;
+    std::shared_ptr<Blockchain> blockchain;
+    std::vector<std::shared_ptr<Transaction>> transactionHistory;  // Histórico de transações
 
     static std::string generateAddress() {
         const std::string chars = "0123456789abcdef";
@@ -30,51 +30,81 @@ private:
         return address;
     }
 
+    // Atualiza o histórico de transações da carteira
+    void updateTransactionHistory() {
+        transactionHistory.clear();
+        
+        // Percorre todos os blocos procurando transações relacionadas a esta carteira
+        for (const auto& block : blockchain->getChain()) {
+            for (const auto& tx : block.getTransactions()) {
+                if (tx->getFromAddress() == address || tx->getToAddress() == address) {
+                    transactionHistory.push_back(tx);
+                }
+            }
+        }
+    }
+
 public:
-    Wallet() : address(generateAddress()), balance(0.0) {}
+    Wallet(std::shared_ptr<Blockchain> bc, const std::string& username) 
+        : address(generateAddress()), ownerUsername(username), blockchain(bc) {}
+    
     virtual ~Wallet() = default;
 
     const std::string& getAddress() const { return address; }
-    double getBalance() const { return balance; }
+    const std::string& getOwnerUsername() const { return ownerUsername; }
+    
+    double getBalance() const {
+        return blockchain->getBalance(address);
+    }
 
     bool sendTransaction(const std::string& recipient, double amount) {
-        if (amount <= 0 || amount > balance) {
+        if (amount <= 0 || amount > getBalance()) {
             return false;
         }
 
-        balance -= amount;
         auto tx = std::make_shared<Transaction>(
             Transaction::Type::SEND,
             address,
             recipient,
             amount
         );
-        transactions.push_back(tx);
-        return true;
-    }
-
-    void receiveTransaction(double amount, const std::string& from = "system") {
-        if (amount <= 0) return;
-
-        balance += amount;
-        auto tx = std::make_shared<Transaction>(
-            from == "system" ? Transaction::Type::MINING_REWARD : Transaction::Type::RECEIVE,
-            from,
-            address,
-            amount
-        );
-        transactions.push_back(tx);
-    }
-
-    std::vector<nlohmann::json> getTransactionHistory(size_t limit = 50) const {
-        std::vector<nlohmann::json> history;
         
-        size_t count = 0;
-        for (auto it = transactions.rbegin(); it != transactions.rend() && count < limit; ++it, ++count) {
-            history.push_back((*it)->toJson());
+        if (blockchain->addTransaction(tx)) {
+            transactionHistory.push_back(tx);
+            return true;
+        }
+        return false;
+    }
+
+    std::vector<nlohmann::json> getTransactionHistory() {
+        // Atualiza o histórico antes de retornar
+        updateTransactionHistory();
+        
+        std::vector<nlohmann::json> history;
+        for (const auto& tx : transactionHistory) {
+            nlohmann::json txJson = tx->toJson();
+            
+            // Adiciona informação se a transação é de entrada ou saída
+            if (tx->getFromAddress() == address) {
+                txJson["type"] = "sent";
+                txJson["impact"] = -tx->getAmount();
+            } else {
+                txJson["type"] = "received";
+                txJson["impact"] = tx->getAmount();
+            }
+            
+            history.push_back(txJson);
         }
         
         return history;
+    }
+
+    nlohmann::json toJson() const {
+        nlohmann::json j;
+        j["address"] = address;
+        j["ownerUsername"] = ownerUsername;
+        j["balance"] = getBalance();
+        return j;
     }
 
     void generateKeyPair();

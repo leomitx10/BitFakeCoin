@@ -1,104 +1,121 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
-        window.location.href = '/index.html';
+        window.location.href = 'login.html';
         return;
     }
 
+    loadDashboard();
+    
+    // Adicionar listener para o botão de logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('token');
-        window.location.href = '/index.html';
+        sessionStorage.removeItem('token');
+        window.location.href = 'login.html';
+    });
+});
+
+async function loadDashboard() {
+    try {
+        const token = sessionStorage.getItem('token');
+        const response = await fetch('/api/transactions/history', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Falha ao carregar dados');
+        }
+
+        const data = await response.json();
+        
+        // Atualizar saldo e endereço
+        document.getElementById('balance').textContent = `${data.balance.toFixed(2)} BFC`;
+        document.getElementById('walletAddress').textContent = data.address;
+
+        // Atualizar histórico de transações
+        const transactionList = document.getElementById('transactionList');
+        transactionList.innerHTML = '';
+
+        if (data.transactions.length === 0) {
+            transactionList.innerHTML = '<p>Nenhuma transação encontrada.</p>';
+            return;
+        }
+
+        // Mostrar apenas as 5 transações mais recentes
+        const recentTransactions = data.transactions.slice(0, 5);
+        recentTransactions.forEach(transaction => {
+            const card = createTransactionCard(transaction);
+            transactionList.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('balance').textContent = 'Erro ao carregar';
+        document.getElementById('walletAddress').textContent = 'Erro ao carregar';
+        document.getElementById('transactionList').innerHTML = 
+            '<p>Erro ao carregar transações. Tente novamente mais tarde.</p>';
+    }
+}
+
+function createTransactionCard(transaction) {
+    const card = document.createElement('div');
+    let iconClass, cardClass, title, info;
+    
+    // Determinar o tipo de card baseado no tipo de transação
+    if (transaction.type === 'mining_reward') {
+        iconClass = 'fa-coins';
+        cardClass = 'mining-reward';
+        title = 'Recompensa de Mineração';
+        info = `Bloco #${transaction.blockNumber}`;
+    } else if (transaction.direction === 'sent') {
+        iconClass = 'fa-arrow-up';
+        cardClass = 'sent-transaction';
+        title = 'Enviado';
+        info = `Para: ${transaction.to}`;
+    } else {
+        iconClass = 'fa-arrow-down';
+        cardClass = 'received-transaction';
+        title = 'Recebido';
+        info = `De: ${transaction.from}`;
+    }
+
+    // Formatar data e hora
+    const date = new Date(transaction.timestamp);
+    const formattedDate = date.toLocaleDateString('pt-BR');
+    const formattedTime = date.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
     });
 
-    async function loadWalletInfo() {
-        try {
-            const response = await fetch('/api/wallet/info', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+    // Formatar valor com sinal
+    const sign = transaction.impact >= 0 ? '+' : '';
+    const amount = `${sign}${transaction.impact.toFixed(2)} BFC`;
 
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('balance').textContent = `${data.balance} coins`;
-                document.getElementById('walletAddress').textContent = data.address;
-            } else {
-                alert('Erro ao carregar informações da carteira');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-        }
-    }
+    // Criar HTML do card
+    card.className = `transaction-card ${cardClass} dashboard-card`;
+    card.innerHTML = `
+        <div class="transaction-icon">
+            <i class="fas ${iconClass}"></i>
+        </div>
+        <div class="transaction-content">
+            <div class="transaction-title">${title}</div>
+            <div class="transaction-info">${info}</div>
+        </div>
+        <div class="transaction-timestamp">${formattedDate} ${formattedTime}</div>
+        <div class="transaction-amount">${amount}</div>
+    `;
 
-    async function loadTransactions() {
-        try {
-            const response = await fetch('/api/transactions/history', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+    return card;
+}
 
-            if (response.ok) {
-                const data = await response.json();
-                const transactions = data.transactions;
-                const transactionList = document.getElementById('transactionList');
-                transactionList.innerHTML = '';
-
-                if (transactions.length === 0) {
-                    transactionList.innerHTML = '<p class="no-transactions">Nenhuma transação encontrada.</p>';
-                    return;
-                }
-
-                transactions.forEach(tx => {
-                    const txElement = document.createElement('div');
-                    txElement.className = `transaction-item ${tx.type}`;
-                    
-                    let amountText = '';
-                    let addressText = '';
-                    
-                    switch (tx.type) {
-                        case 'send':
-                            amountText = `-${tx.amount}`;
-                            addressText = `Para: ${tx.to}`;
-                            break;
-                        case 'receive':
-                            amountText = `+${tx.amount}`;
-                            addressText = `De: ${tx.from}`;
-                            break;
-                        case 'mining_reward':
-                            amountText = `+${tx.amount}`;
-                            addressText = 'Recompensa de Mineração';
-                            break;
-                    }
-
-                    const date = new Date(tx.timestamp);
-                    
-                    txElement.innerHTML = `
-                        <div class="transaction-header">
-                            <span class="transaction-type">${tx.type === 'send' ? 'Enviado' : tx.type === 'receive' ? 'Recebido' : 'Mineração'}</span>
-                            <span class="transaction-amount ${tx.type === 'send' ? 'text-danger' : 'text-success'}">${amountText} coins</span>
-                        </div>
-                        <div class="transaction-details">
-                            <p>${addressText}</p>
-                            <p>Data: ${date.toLocaleString()}</p>
-                        </div>
-                    `;
-
-                    transactionList.appendChild(txElement);
-                });
-            } else {
-                alert('Erro ao carregar transações');
-            }
-        } catch (error) {
-            console.error('Erro:', error);
-        }
-    }
-
-    // Atualizar informações a cada 30 segundos
-    loadWalletInfo();
-    loadTransactions();
-    setInterval(() => {
-        loadWalletInfo();
-        loadTransactions();
-    }, 30000);
-});
+// Função para copiar o endereço da carteira
+function copyAddress() {
+    const address = document.getElementById('walletAddress').textContent;
+    navigator.clipboard.writeText(address).then(() => {
+        alert('Endereço copiado para a área de transferência!');
+    }).catch(err => {
+        console.error('Erro ao copiar:', err);
+        alert('Erro ao copiar endereço');
+    });
+}

@@ -1,0 +1,114 @@
+/* Card base para todas as transações */
+.transaction-card {
+    background: #FFFFFF;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+/* Ícone comum para todos os cards */
+.transaction-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+/* Conteúdo principal do card */
+.transaction-content {
+    flex-grow: 1;
+}
+
+/* Título da transação */
+.transaction-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+/* Informações adicionais */
+.transaction-info {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Data e hora */
+.transaction-timestamp {
+    font-size: 12px;
+    color: #999;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+/* Valor da transação */
+.transaction-amount {
+    font-size: 16px;
+    font-weight: 600;
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+}
+
+/* Destinatário */
+.transaction-recipient {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* Estilos específicos para mineração */
+.mining-reward {
+    border-left: 4px solid #FF9800;
+}
+
+.mining-reward .transaction-icon {
+    background-color: #FFF3E0;
+    color: #FF9800;
+}
+
+.mining-reward .transaction-amount {
+    color: #FF9800;
+}
+
+/* Estilos específicos para envio */
+.sent-transaction {
+    border-left: 4px solid #F44336;
+}
+
+.sent-transaction .transaction-icon {
+    background-color: #FFEBEE;
+    color: #F44336;
+}
+
+.sent-transaction .transaction-amount {
+    color: #F44336;
+}
+
+/* Estilos específicos para recebimento */
+.received-transaction {
+    border-left: 4px solid #4CAF50;
+}
+
+.received-transaction .transaction-icon {
+    background-color: #E8F5E9;
+    color: #4CAF50;
+}
+
+.received-transaction .transaction-amount {
+    color: #4CAF50;
+}
+
+/* Animação suave ao passar o mouse */
+.transaction-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}

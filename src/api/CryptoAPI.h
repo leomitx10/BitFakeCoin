@@ -12,7 +12,7 @@
 class CryptoAPI {
 private:
     crow::SimpleApp app;
-    Blockchain blockchain;
+    std::shared_ptr<Blockchain> blockchain;
     std::map<std::string, std::shared_ptr<User>> users;
     std::map<std::string, std::shared_ptr<Wallet>> wallets;
     const std::string JWT_SECRET = "your-secret-key";
@@ -44,7 +44,7 @@ private:
     }
 
 public:
-    CryptoAPI() {
+    CryptoAPI() : blockchain(std::make_shared<Blockchain>()) {
         // Encontrar o diretório public
         publicDir = std::filesystem::current_path().parent_path() / "public";
         setupRoutes();
@@ -130,20 +130,43 @@ private:
             auto body = crow::json::load(req.body);
             if (!body) return crow::response(400, "Invalid JSON");
 
+            if (!body.has("username") || !body.has("password")) {
+                return crow::response(400, "Username and password are required");
+            }
+
             std::string username = body["username"].s();
             std::string password = body["password"].s();
+            std::string email;
+            std::string fullName;
+
+            // Verificar campos opcionais
+            if (body.has("email")) {
+                email = body["email"].s();
+            }
+            if (body.has("fullName")) {
+                fullName = body["fullName"].s();
+            }
 
             if (users.find(username) != users.end()) {
                 return crow::response(409, "Username already exists");
             }
 
-            auto wallet = std::make_shared<Wallet>();
+            auto wallet = std::make_shared<Wallet>(blockchain, username);
             wallets[wallet->getAddress()] = wallet;
-            auto user = std::make_shared<User>(username, password, wallet);
+            auto user = std::make_shared<User>(username, password, wallet, email, fullName);
             users[username] = user;
+
+            // Gerar token JWT
+            std::string token = generateToken(username);
 
             crow::json::wvalue response;
             response["message"] = "User created successfully";
+            response["token"] = token;
+            response["user"] = {
+                {"username", username},
+                {"walletAddress", wallet->getAddress()},
+                {"balance", wallet->getBalance()}
+            };
             return crow::response(201, response);
         });
 
@@ -153,17 +176,32 @@ private:
             auto body = crow::json::load(req.body);
             if (!body) return crow::response(400, "Invalid JSON");
 
+            if (!body.has("username") || !body.has("password")) {
+                return crow::response(400, "Username and password are required");
+            }
+
             std::string username = body["username"].s();
             std::string password = body["password"].s();
 
             auto it = users.find(username);
             if (it == users.end() || it->second->getPasswordHash() != password) {
-                return crow::response(401, "Invalid credentials");
+                return crow::response(401, "Invalid username or password");
             }
 
+            // Gerar token JWT
+            std::string token = generateToken(username);
+
+            auto user = it->second;
+            auto wallet = user->getWallet();
+
             crow::json::wvalue response;
-            response["token"] = generateToken(username);
-            return crow::response{response};
+            response["token"] = token;
+            response["user"] = {
+                {"username", username},
+                {"walletAddress", wallet->getAddress()},
+                {"balance", wallet->getBalance()}
+            };
+            return crow::response(200, response);
         });
 
         // Informações da carteira
@@ -185,6 +223,61 @@ private:
             return crow::response{response};
         });
 
+        // Enviar transação
+        CROW_ROUTE(app, "/api/transactions/send")
+            .methods("POST"_method)
+        ([this](const crow::request& req) {
+            std::string username;
+            std::string token = req.get_header_value("Authorization").substr(7);
+            
+            if (!verifyToken(token, username)) {
+                return crow::response(401, "Invalid token");
+            }
+
+            auto body = crow::json::load(req.body);
+            if (!body) return crow::response(400, "Invalid JSON");
+
+            if (!body.has("to") || !body.has("amount")) {
+                return crow::response(400, "Recipient address and amount are required");
+            }
+
+            std::string recipientAddress = body["to"].s();
+            double amount = body["amount"].d();
+
+            auto user = users[username];
+            auto wallet = user->getWallet();
+
+            if (amount <= 0) {
+                return crow::response(400, "Amount must be greater than 0");
+            }
+
+            if (wallet->getBalance() < amount) {
+                return crow::response(400, "Insufficient balance");
+            }
+
+            // Criar e adicionar a transação
+            auto transaction = std::make_shared<Transaction>(
+                Transaction::Type::SEND,
+                wallet->getAddress(),
+                recipientAddress,
+                amount
+            );
+
+            if (!blockchain->addTransaction(transaction)) {
+                return crow::response(400, "Transaction failed");
+            }
+
+            crow::json::wvalue response;
+            response["message"] = "Transaction added to pending transactions";
+            response["transaction"] = {
+                {"from", wallet->getAddress()},
+                {"to", recipientAddress},
+                {"amount", amount},
+                {"status", "pending"}
+            };
+            return crow::response(201, response);
+        });
+
         // Histórico de transações
         CROW_ROUTE(app, "/api/transactions/history")
         ([this](const crow::request& req) {
@@ -197,22 +290,43 @@ private:
 
             auto user = users[username];
             auto wallet = user->getWallet();
+            auto transactions = blockchain->getTransactionHistory(wallet->getAddress());
 
-            // Obter o limite de transações da query string (opcional)
-            size_t limit = 50;
-            if (req.url_params.get("limit") != nullptr) {
-                limit = std::stoul(req.url_params.get("limit"));
-            }
-
-            auto transactions = wallet->getTransactionHistory(limit);
-            
             crow::json::wvalue response;
             std::vector<crow::json::wvalue> txArray;
+
             for (const auto& tx : transactions) {
-                txArray.push_back(nlohmannToCrow(tx));
+                auto txJson = tx->toJson();
+                
+                // Adicionar informações específicas para o usuário
+                bool isSender = (tx->getFromAddress() == wallet->getAddress());
+                
+                crow::json::wvalue txResponse;
+                txResponse["type"] = txJson["type"].get<std::string>();
+                txResponse["direction"] = isSender ? "sent" : "received";
+                txResponse["from"] = txJson["from"].get<std::string>();
+                txResponse["to"] = txJson["to"].get<std::string>();
+                txResponse["amount"] = txJson["amount"].get<double>();
+                txResponse["timestamp"] = txJson["timestamp"].get<int64_t>();
+                txResponse["impact"] = isSender ? -txJson["amount"].get<double>() : txJson["amount"].get<double>();
+                
+                // Adicionar descrição amigável
+                std::string description;
+                if (tx->getType() == Transaction::Type::MINING_REWARD) {
+                    description = "Mining Reward";
+                } else if (isSender) {
+                    description = "Sent to " + tx->getToAddress().substr(0, 8) + "...";
+                } else {
+                    description = "Received from " + tx->getFromAddress().substr(0, 8) + "...";
+                }
+                txResponse["description"] = description;
+                
+                txArray.push_back(std::move(txResponse));
             }
-            response["transactions"] = crow::json::wvalue(txArray);
-            
+
+            response["transactions"] = std::move(txArray);
+            response["balance"] = wallet->getBalance();
+            response["address"] = wallet->getAddress();
             return crow::response{response};
         });
 
@@ -230,49 +344,12 @@ private:
             auto user = users[username];
             auto wallet = user->getWallet();
             
-            // Recompensa de mineração
-            const double MINING_REWARD = 10.0;
-            wallet->receiveTransaction(MINING_REWARD);
-            blockchain.addBlock("Mining reward: " + std::to_string(MINING_REWARD) + " to " + wallet->getAddress());
+            // Minerar transações pendentes e receber recompensa
+            blockchain->minePendingTransactions(wallet->getAddress());
 
             crow::json::wvalue response;
             response["success"] = true;
-            response["reward"] = MINING_REWARD;
-            return crow::response{response};
-        });
-
-        // Transações
-        CROW_ROUTE(app, "/api/transactions/send")
-            .methods("POST"_method)
-        ([this](const crow::request& req) {
-            std::string username;
-            std::string token = req.get_header_value("Authorization").substr(7);
-            
-            if (!verifyToken(token, username)) {
-                return crow::response(401, "Invalid token");
-            }
-
-            auto body = crow::json::load(req.body);
-            if (!body) return crow::response(400, "Invalid JSON");
-
-            std::string toAddress = body["to"].s();
-            double amount = body["amount"].d();
-
-            auto user = users[username];
-            auto wallet = user->getWallet();
-
-            if (wallet->getBalance() < amount) {
-                return crow::response(400, "Insufficient funds");
-            }
-
-            if (!wallet->sendTransaction(toAddress, amount)) {
-                return crow::response(400, "Transaction failed");
-            }
-
-            blockchain.addBlock("Transaction: " + std::to_string(amount) + " from " + wallet->getAddress() + " to " + toAddress);
-
-            crow::json::wvalue response;
-            response["success"] = true;
+            response["reward"] = 50.0; // Valor definido no blockchain
             return crow::response{response};
         });
     }

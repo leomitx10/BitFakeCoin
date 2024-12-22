@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    localStorage.setItem('token', data.token);
+                    sessionStorage.setItem('token', data.token);
                     window.location.href = '/dashboard.html';
                 } else {
                     alert('Login falhou. Verifique suas credenciais.');

@@ -1,14 +1,21 @@
 #include "Block.h"
+#include <nlohmann/json.hpp>
 
-Block::Block(int idx, const std::string& data, const std::string& prevHash) 
-    : index(idx), data(data), previousHash(prevHash), nonce(0) {
+Block::Block(int idx, const std::vector<std::shared_ptr<Transaction>>& txs, const std::string& prevHash) 
+    : index(idx), transactions(txs), previousHash(prevHash), nonce(0) {
     timestamp = time(nullptr);
     hash = calculateHash();
 }
 
 std::string Block::calculateHash() const {
     std::stringstream ss;
-    ss << index << timestamp << data << previousHash << nonce;
+    ss << index << timestamp << previousHash << nonce;
+    
+    // Adicionar hash das transações
+    for (const auto& tx : transactions) {
+        ss << tx->toJson().dump();
+    }
+    
     return SHA256::hash(ss.str());
 }
 
