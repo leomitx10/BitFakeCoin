@@ -1,12 +1,4 @@
-# Arquivos de compilação C++
-*.o
-*.out
-*.exe
-*.dll
-*.so
-*.dylib
-
-# Diretórios de build
+# Build e Compilação
 build/
 bin/
 obj/
@@ -14,80 +6,85 @@ Debug/
 Release/
 x64/
 x86/
+*.o
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
 
-# Arquivos de IDE e editores
+# IDEs e Editores
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 *~
-.vs/
 *.user
 *.suo
 *.sdf
 *.opensdf
+*.sublime-workspace
+*.sublime-project
 
-# Arquivos de dependências
+# Dependências
 node_modules/
 vendor/
 lib/
 deps/
+_deps/
+package-lock.json
+yarn.lock
 
-# Arquivos de configuração local
+# Configuração e Ambiente
 *.env
+.env.local
+.env.*.local
 config.local.json
 *.local.json
+.DS_Store
+Thumbs.db
 
-# Arquivos de cache
+# Cache e Temporários
 .cache/
 .temp/
 tmp/
+*.tmp
+*.bak
 
-# Arquivos de log
+# Logs e Debug
 *.log
 logs/
 log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Arquivos de banco de dados
-*.db
+# Banco de Dados
 *.sqlite
 *.sqlite3
+*.db
+*.sql
 
-# Arquivos de sistema
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Arquivos de certificado e chaves
-*.pem
-*.key
-*.crt
-*.cert
-*.pfx
-
-# Arquivos de backup
-*.bak
-*.backup
-*.old
-
-# Arquivos específicos do projeto
-blockchain.dat
-wallet.dat
-*.wallet
-*.chain
-
-# Arquivos de teste e cobertura
+# Arquivos de Cobertura e Testes
 coverage/
-test-results/
-*.coverage
-*.coveragexml
+.nyc_output/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*$py.class
 
-# Arquivos de documentação gerada
-docs/generated/
-doxygen/
+# Documentação Gerada
+docs/_build/
+doc/
+documentation/
 
-# Outros
-*.zip
-*.tar.gz
-*.rar
-core.*
+# Arquivos de Sistema
+.directory
+.Trash-*
+$RECYCLE.BIN/
+System Volume Information/
