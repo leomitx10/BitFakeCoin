@@ -1,16 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
     const token = sessionStorage.getItem('token');
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return;
     }
 
     loadDashboard();
     
-    // Adicionar listener para o botão de logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
+    // Configurar o menu dropdown do usuário
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('show');
+    });
+
+    // Fechar o dropdown quando clicar fora dele
+    document.addEventListener('click', (e) => {
+        if (!userDropdown.contains(e.target) && !userMenuBtn.contains(e.target)) {
+            userDropdown.classList.remove('show');
+        }
+    });
+    
+    // Configurar o logout
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        e.preventDefault();
         sessionStorage.removeItem('token');
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     });
 });
 
