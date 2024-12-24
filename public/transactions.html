@@ -6,25 +6,10 @@
     <title>CryptoProject - Transações</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/transactions.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">CryptoProject</div>
-        <button class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="nav-menu" id="navMenu">
-            <a href="dashboard.html">Dashboard</a>
-            <a href="mining.html">Mineração</a>
-            <a href="transactions.html" class="active">Transações</a>
-            <div class="user-menu">
-                <i class="fas fa-user user-icon" id="userMenuBtn"></i>
-                <div class="dropdown-menu" id="userDropdown">
-                    <a href="#" id="logoutBtn">Sair</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <nav-bar></nav-bar>
 
     <div class="container">
         <div class="transactions-panel">
@@ -35,15 +20,15 @@
                     <input type="text" id="recipientAddress" required>
                 </div>
                 <div class="form-group">
-                    <label for="amount">Quantidade:</label>
-                    <input type="number" id="amount" min="0.01" step="0.01" required>
+                    <label for="amount">Quantidade (BFC):</label>
+                    <input type="number" id="amount" step="0.01" min="0.01" required>
                 </div>
                 <button type="submit" class="primary-btn">Enviar</button>
             </form>
 
             <div class="transaction-history">
                 <h2>Histórico de Transações</h2>
-                <div class="filter-controls">
+                <div class="transaction-filters">
                     <button class="filter-btn active" data-filter="all">Todas</button>
                     <button class="filter-btn" data-filter="sent">Enviadas</button>
                     <button class="filter-btn" data-filter="received">Recebidas</button>
@@ -55,7 +40,7 @@
         </div>
     </div>
 
+    <script src="components/navbar.js"></script>
     <script src="js/transactions.js"></script>
-    <script src="js/menu.js"></script>
 </body>
 </html>

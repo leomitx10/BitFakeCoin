@@ -8,23 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-brand">CryptoProject</div>
-        <button class="menu-toggle" id="menuToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        <div class="nav-menu" id="navMenu">
-            <a href="dashboard.html" class="active">Dashboard</a>
-            <a href="mining.html">Mineração</a>
-            <a href="transactions.html">Transações</a>
-            <div class="user-menu">
-                <i class="fas fa-user user-icon" id="userMenuBtn"></i>
-                <div class="dropdown-menu" id="userDropdown">
-                    <a href="#" id="logoutBtn">Sair</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <nav-bar></nav-bar>
 
     <div class="container">
         <div class="dashboard">
@@ -50,6 +34,7 @@
         </div>
     </div>
 
+    <script src="components/navbar.js"></script>
     <script src="js/dashboard.js"></script>
     <script src="js/menu.js"></script>
 </body>
